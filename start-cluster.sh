@@ -24,6 +24,7 @@ openssl rsa -in "${SA_KEY_FOLDER}/sa.key" -pubout -out "${SA_KEY_FOLDER}/sa.pub"
 # go install github.com/jphastings/jwker/cmd/jwker@latest
 # jwker "${SA_KEY_FOLDER}/sa.pub" > "${SA_KEY_FOLDER}/sa-jwks.json"
 
+
 # https://k3d.io/v5.2.2/faq/faq/
 
 k3d cluster create "${CLUSTER_NAME}" \
