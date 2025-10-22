@@ -47,24 +47,25 @@ user_principal_id=$(echo "$user_assigned_data" | jq -r '.principalId')
 echo "Client id: $user_client_id"
 echo "Principal id: $user_principal_id"
 
-az keyvault set-policy --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${KEYVAULT_NAME_RD}" --secret-permissions get --spn "${user_client_id}"
-az keyvault set-policy --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${KEYVAULT_NAME_RD_SDLC}" --secret-permissions get --spn "${user_client_id}"
-exit 1
-
 
 if ! az role assignment create --assignee-object-id ${user_principal_id} --assignee-principal-type ServicePrincipal \
-  --role Reader \
+  --role "Key Vault Secrets User" \
   --scope "/subscriptions/${AZURE_SUBSCRIPTION_RD_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
     echo "Failed to assign Reader role to the User Assigned Identity on subscription ${AZURE_SUBSCRIPTION_RD_ID}. Please check your access rights."
     exit 1
 fi
 
 if ! az role assignment create --assignee-object-id ${user_principal_id} --assignee-principal-type ServicePrincipal \
-  --role Reader \
+  --role "Key Vault Secrets User" \
   --scope "/subscriptions/${AZURE_SUBSCRIPTION_RD_SDLC_ID}/resourceGroups/${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
     echo "Failed to assign Reader role to the User Assigned Identity on subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID}. Please check your access rights."
     exit 1
 fi
+
+echo "List of role assignments for the User Assigned Identity: ${user_principal_id}"
+
+az role assignment list --assignee-object-id ${user_principal_id} --subscription ${AZURE_SUBSCRIPTION_RD_ID} --all
+az role assignment list --assignee-object-id ${user_principal_id} --subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID} --all
 
 
 echo "User Assigned Identity and role assignments completed successfully."
