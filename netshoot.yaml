@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: netshoot
+  name: netshoot
+  namespace: azure-wli-namespace  
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netshoot
+  template:
+    metadata:
+      labels:
+        app: netshoot
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: azure-wli-service-account
+      containers:
+      - image: nicolaka/netshoot
+        name: netshoot
+        command: ["/bin/bash"]
+        args: ["-c", "while true; do ping localhost; sleep 60;done"]
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"        

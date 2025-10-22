@@ -1,1 +1,5 @@
 .k3d/
+.env
+workloads-for-testing.yaml
+azwi-linux-amd64
+openid-configuration.json

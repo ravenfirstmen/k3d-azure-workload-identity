@@ -19,14 +19,6 @@ fi
 # https://kubernetes.io/docs/reference/command-line-tools-reference/kube-apiserver/
 # https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/
 # for service account keys
-openssl genrsa -out "${SA_KEY_FOLDER}/sa.key" 4096
-openssl rsa -in "${SA_KEY_FOLDER}/sa.key" -pubout -out "${SA_KEY_FOLDER}/sa.pub"
-# go install github.com/jphastings/jwker/cmd/jwker@latest
-# jwker "${SA_KEY_FOLDER}/sa.pub" > "${SA_KEY_FOLDER}/sa-jwks.json"
-
-
-# https://k3d.io/v5.2.2/faq/faq/
-
 k3d cluster create "${CLUSTER_NAME}" \
     --image "${IMAGE}" \
     --api-port "localhost:6443" \
@@ -35,7 +27,7 @@ k3d cluster create "${CLUSTER_NAME}" \
     --no-lb \
     --k3s-arg '--disable=metrics-server@server:*' \
     --k3s-arg '--disable=traefik@server:*' \
-    --k3s-arg "--kube-apiserver-arg=service-account-issuer=${ISSUER}@server:*" \
+    --k3s-arg "--kube-apiserver-arg=service-account-issuer=${K8S_ISSUER}@server:*" \
     --k3s-arg "--kube-apiserver-arg=service-account-signing-key-file=/etc/ssl/pki/sa/sa.key@server:*" \
     --k3s-arg "--kube-apiserver-arg=service-account-key-file=/etc/ssl/pki/sa/sa.pub@server:*" \
     --k3s-arg "--kube-controller-manager-arg=service-account-private-key-file=/etc/ssl/pki/sa/sa.key@server:*" \
