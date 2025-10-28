@@ -9,6 +9,10 @@ source "${FOLDER}/_app-login.sh"
 
 app_login
 
+# TL;DR
+# - Managed Identity Contributor on the resource group that will contain the User Assigned Managed Identity.
+# - User Access Administrator on both subscriptions where you're granting demo "Key Vault Secrets User".
+
 echo "Setting up Azure User Assigned Identity and Key Vaults with demo secrets..."
 if ! az identity show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${USER_ASSIGNED_IDENTITY_NAMEV2}" --resource-group "${AZURE_RESOURCE_GROUPV2}" >/dev/null 2>&1; then
     echo "The User Assigned Identity ${USER_ASSIGNED_IDENTITY_NAMEV2} does not exist in resource group ${AZURE_RESOURCE_GROUPV2}. Creating the Identity..."    
