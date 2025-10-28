@@ -2,8 +2,8 @@
 
 source "$(dirname "$(readlink -f "$0")")"/_local_vars.sh
 
-mkdir -p "${DOT_K3D}"
-mkdir -p "${SA_KEY_FOLDER}"
+mkdir -p "${SCRIPT_DIR}/${DOT_K3D}"
+mkdir -p "${SCRIPT_DIR}/${SA_KEY_FOLDER}"
 
 # reference/source: https://hub.docker.com/r/rancher/k3s/tags
 IMAGE="rancher/k3s:v1.32.9-k3s1-amd64"
@@ -31,4 +31,4 @@ k3d cluster create "${CLUSTER_NAME}" \
     --k3s-arg "--kube-apiserver-arg=service-account-signing-key-file=/etc/ssl/pki/sa/sa.key@server:*" \
     --k3s-arg "--kube-apiserver-arg=service-account-key-file=/etc/ssl/pki/sa/sa.pub@server:*" \
     --k3s-arg "--kube-controller-manager-arg=service-account-private-key-file=/etc/ssl/pki/sa/sa.key@server:*" \
-    --volume "${SA_KEY_FOLDER}:/etc/ssl/pki/sa@server:*" 
+    --volume "${SCRIPT_DIR}/${SA_KEY_FOLDER}:/etc/ssl/pki/sa@server:*" 

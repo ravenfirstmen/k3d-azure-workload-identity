@@ -7,4 +7,4 @@ if k3d cluster list "${CLUSTER_NAME}" > /dev/null 2>&1; then
 	k3d cluster delete "${CLUSTER_NAME}"
 fi
 
-# rm -rdf "${DOT_K3D}"
+# rm -rdf "#{SCRIPT_DIR}/${DOT_K3D}"

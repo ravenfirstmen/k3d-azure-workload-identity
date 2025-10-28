@@ -1,9 +1,16 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$(readlink -f "$0")")"/_local_vars.sh
-source "$(dirname "$(readlink -f "$0")")"/.env
-mkdir -p "${SA_KEY_FOLDER}"
+CURRENT_FILE=$(readlink -f "$0")
+FOLDER=$(dirname ${CURRENT_FILE})
+PARENT_FOLDER=$(dirname ${FOLDER})
 
+echo "Setting up Azure resources for OpenID configuration..."
+source ${PARENT_FOLDER}/_local_vars.sh
+source ${PARENT_FOLDER}/.env
+
+CERTS_FOLDER="${PARENT_FOLDER}/${SA_KEY_FOLDER}"
+
+mkdir -p "${CERTS_FOLDER}"
 
 if ! az account show >/dev/null 2>&1; then
     echo "You are not logged in to Azure CLI. Attempting to log in..."
@@ -18,31 +25,24 @@ if ! az account set --subscription "${AZURE_SUBSCRIPTION_RD_ID}" >/dev/null 2>&1
     exit 1
 fi
 
-master_app_registration=$(az ad sp list --display-name ${AZURE_MASTER_APP_REGISTRATION} -o json)
-master_app_registration_sp_id=$(echo $master_app_registration | jq -r '.[0].appId')
 
-if [ -z "${master_app_registration_sp_id}" ] || [ "${master_app_registration_sp_id}" == "null" ]; then
-  echo "Service principal ${AZURE_MASTER_APP_REGISTRATION} not found. Please create it before proceeding."
-  exit 1f
-fi
-
-if [ -z "${AZURE_AZURE_MASTER_APP_REGISTRATION_PWD}" ]; then
-  echo "AZURE_AZURE_MASTER_APP_REGISTRATION_PWD variable is not set. Please ensure AZURE_AZURE_MASTER_APP_REGISTRATION_PWD is set in .env file"  
-  exit 1
-fi
-
-if ! az login --allow-no-subscriptions --service-principal --username "${master_app_registration_sp_id}" --password "${AZURE_AZURE_MASTER_APP_REGISTRATION_PWD}" --tenant "${AZURE_TENANT_ID}" >/dev/null 2>&1; then
-  echo "Failed to login to Azure as service principal. Please check your credentials."
-  exit 1
-fi
+echo "Default Azure account details:"
 
 az account show -o json | jq -r '.'
 
 # subscription 1
 if ! az group show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
     echo "The current Azure resource group does not match ${AZURE_RESOURCE_GROUP} on subscription ${AZURE_SUBSCRIPTION_RD_ID}. Creating the resource group..."
-    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${AZURE_RESOURCE_GROUP}" --location "${AZURE_LOCATION}" --managed-by "${master_app_registration_sp_id}" >/dev/null 2>&1; then
+    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${AZURE_RESOURCE_GROUP}" --location "${AZURE_LOCATION}" >/dev/null 2>&1; then
       echo "Failed to create or access the Azure resource group ${AZURE_RESOURCE_GROUP} on subscription ${AZURE_SUBSCRIPTION_RD_ID}. Please check your access rights."
+      exit 1
+    fi
+fi
+
+if ! az group show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${AZURE_RESOURCE_GROUPV2}" >/dev/null 2>&1; then
+    echo "The current Azure resource group does not match ${AZURE_RESOURCE_GROUPV2} on subscription ${AZURE_SUBSCRIPTION_RD_ID}. Creating the resource group..."
+    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${AZURE_RESOURCE_GROUPV2}" --location "${AZURE_LOCATION}" >/dev/null 2>&1; then
+      echo "Failed to create or access the Azure resource group ${AZURE_RESOURCE_GROUPV2} on subscription ${AZURE_SUBSCRIPTION_RD_ID}. Please check your access rights."
       exit 1
     fi
 fi
@@ -50,8 +50,16 @@ fi
 # subscription 2
 if ! az group show --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
     echo "The current Azure resource group does not match ${AZURE_RESOURCE_GROUP} on subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID}. Creating the resource group..."
-    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${AZURE_RESOURCE_GROUP}" --location "${AZURE_LOCATION}" --managed-by "${master_app_registration_sp_id}" >/dev/null 2>&1; then
+    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${AZURE_RESOURCE_GROUP}" --location "${AZURE_LOCATION}" >/dev/null 2>&1; then
       echo "Failed to create or access the Azure resource group ${AZURE_RESOURCE_GROUP} on subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID}. Please check your access rights."
+      exit 1
+    fi
+fi
+
+if ! az group show --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${AZURE_RESOURCE_GROUPV2}" >/dev/null 2>&1; then
+    echo "The current Azure resource group does not match ${AZURE_RESOURCE_GROUPV2} on subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID}. Creating the resource group..."
+    if ! az group create --subscription "${AZURE_SUBSCRIPTION_RD_SDLC_ID}" --name "${AZURE_RESOURCE_GROUPV2}" --location "${AZURE_LOCATION}" >/dev/null 2>&1; then
+      echo "Failed to create or access the Azure resource group ${AZURE_RESOURCE_GROUPV2} on subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID}. Please check your access rights."
       exit 1
     fi
 fi
@@ -72,14 +80,13 @@ if ! az storage container show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --ac
     fi
 fi
 
-
-if [ ! -f "${SA_KEY_FOLDER}/sa.pub" ]; then
-  openssl genrsa -out "${SA_KEY_FOLDER}/sa.key" 4096
-  openssl rsa -in "${SA_KEY_FOLDER}/sa.key" -pubout -out "${SA_KEY_FOLDER}/sa.pub"
-  ./azwi-linux-amd64 jwks --public-keys "${SA_KEY_FOLDER}/sa.pub" --output-file "${SA_KEY_FOLDER}/jwks.json"
+if [ ! -f "${CERTS_FOLDER}/sa.pub" ]; then
+  openssl genrsa -out "${CERTS_FOLDER}/sa.key" 4096
+  openssl rsa -in "${CERTS_FOLDER}/sa.key" -pubout -out "${CERTS_FOLDER}/sa.pub"
+  ./azwi-linux-amd64 jwks --public-keys "${CERTS_FOLDER}/sa.pub" --output-file "${CERTS_FOLDER}/jwks.json"
 fi
 
-az storage blob upload --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --account-name ${AZURE_STORAGE_ACCOUNT_NAME} --container-name ${AZURE_STORAGE_CONTAINER_NAME} --name "openid/v1/jwks" --file "${SA_KEY_FOLDER}/jwks.json" --overwrite  >/dev/null 2>&1
+az storage blob upload --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --account-name ${AZURE_STORAGE_ACCOUNT_NAME} --container-name ${AZURE_STORAGE_CONTAINER_NAME} --name "openid/v1/jwks" --file "${CERTS_FOLDER}/jwks.json" --overwrite  >/dev/null 2>&1
 cat << EOT > openid-configuration.json 
 {
     "issuer": "${K8S_ISSUER}",

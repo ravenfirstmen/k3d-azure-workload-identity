@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
 
-source "$(dirname "$(readlink -f "$0")")"/_local_vars.sh
-source "$(dirname "$(readlink -f "$0")")"/.env
+CURRENT_FILE=$(readlink -f "$0")
+FOLDER=$(dirname ${CURRENT_FILE})
 
-if ! az account show >/dev/null 2>&1; then
-    echo "You are not logged in to Azure CLI. Attempting to log in..."
-    if ! az login --tenant ${AZURE_TENANT_ID} --scope "https://graph.microsoft.com//.default" >/dev/null 2>&1; then
-      echo "Azure CLI login failed. Please ensure you have access to the Azure account and try again."
-      exit 1
-    fi    
-fi
+source "${FOLDER}/_local_vars.sh"
+source "${FOLDER}/.env"
+source "${FOLDER}/_app-login.sh"
 
-if ! az account set --subscription "${AZURE_SUBSCRIPTION_RD_ID}" >/dev/null 2>&1; then
-    echo "Failed to set the default Azure subscription to ${AZURE_SUBSCRIPTION_RD_ID}. Please check your access rights."
-    exit 1
-fi
+app_login
 
 echo "Setting up Azure User Assigned Identity and Key Vaults with demo secrets..."
 if ! az identity show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${USER_ASSIGNED_IDENTITY_NAME}" --resource-group "${AZURE_RESOURCE_GROUP}" >/dev/null 2>&1; then
@@ -24,6 +17,8 @@ if ! az identity show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" --name "${USE
       exit 1
     fi
 fi
+
+exit 1
 
 if ! az identity federated-credential show --subscription "${AZURE_SUBSCRIPTION_RD_ID}" \
   --name ${FEDERATION_CREDENTIALS_USER_ASSIGNED_IDENTITY_NAME} \
@@ -66,6 +61,5 @@ echo "List of role assignments for the User Assigned Identity: ${user_principal_
 
 az role assignment list --assignee-object-id ${user_principal_id} --subscription ${AZURE_SUBSCRIPTION_RD_ID} --all
 az role assignment list --assignee-object-id ${user_principal_id} --subscription ${AZURE_SUBSCRIPTION_RD_SDLC_ID} --all
-
 
 echo "User Assigned Identity and role assignments completed successfully."
