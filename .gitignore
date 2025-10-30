@@ -3,3 +3,6 @@
 workloads-for-testing.yaml
 azwi-linux-amd64
 openid-configuration.json
+jwt-sample.json
+jwt1.json
+jwts/.idea/
