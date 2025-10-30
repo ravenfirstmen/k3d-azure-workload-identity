@@ -45,7 +45,7 @@ func main() {
 	}
 
 	key := jwks.Keys[0].Public()
-	fmt.Printf("Using key with kid=%q alg=%q use=%q\n", key.KeyID, key.Algorithm, key.Use)
+	fmt.Printf("Using key with kid=%s alg=%s use=%s\n", key.KeyID, key.Algorithm, key.Use)
 
 	claims, err := readClaimsFromFileAndUpdateDates(jwtClaimsPath)
 	if err != nil {
